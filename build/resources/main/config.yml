@@ -1,0 +1,57 @@
+#   ___                       _ ______  _               _
+#  / _ \                     | || ___ \| |             | |
+# / /_\ \ _ __    __ _   ___ | || |_/ /| |  ___    ___ | | __
+# |  _  || '_ \  / _` | / _ \| || ___ \| | / _ \  / __|| |/ /
+# | | | || | | || (_| ||  __/| || |_/ /| || (_) || (__ |   <
+# \_| |_/|_| |_| \__, | \___||_|\____/ |_| \___/  \___||_|\_\
+#                 __/ |
+#                |___/
+# By: MC506LW
+# QQ交流群: 645921477
+
+# 物品配置
+item:
+  material: OBSIDIAN
+  name: "&b天使方块"
+  lore:
+    - "&7可以放置在任何位置"
+    - "&eShift + 滚轮调整距离"
+    - "&e右击放置，左击拆除"
+
+# 粒子配置
+particle:
+  color: 255,255,255  # RGB白色
+  size: 0.5 # 1方块大小
+
+# 距离配置
+distance:
+  min: 1
+  max: 6
+  default: 3
+
+# 数据库配置
+database:
+  filename: angelblocks.db
+
+# 消息配置
+messages:
+  no-permission: "&c你没有权限使用此命令！"
+  player-not-found: "&c玩家未找到！"
+  give-success: "&a已给予天使方块给 {player}！"
+  reload-success: "&a配置已重载！"
+  placement-distance: "&e放置距离: {distance}"
+  cant-build-here: "&c你不能在这里建造！"
+  cant-place-here: "&c不能放置在这里！"
+  usage: "&c用法: /angelblock [player] 或 /angelblock reload"
+  max-blocks-reached: "&c你已达到最大放置数量 ({max})！"
+  removeall-confirm: "&c确定要移除所有天使方块吗？再次输入/angelblock removeall confirm以确认"
+  player-only-command: "&c只有玩家才能执行此命令！"
+  removeall-success: "&a已移除所有天使方块，并返还了 {count} 个方块！"
+  cant-break-here: "&c你不能在这里破坏天使方块！"
+  cant-build-in-protected-area: "&c你不能在保护区域放置天使方块！"
+  block-removed-by-protection: "&c由于领地保护，你放置的天使方块被移除，已返还给你一个天使方块"
+  block-location: "&7方块位置: {location}"
+  cant-break-others: "&c你不能破坏 {owner} 的天使方块！"
+  admin-removed-your-block: "&c管理员 {admin} 移除了你的天使方块"
+  block-removed: "&a天使方块已移除"
+  corrupted-block: "&c这个天使方块信息已损坏，无法破坏！"
