@@ -1,9 +1,11 @@
 name: AngelBlock
-version: 1.0
+version: 1.1
 main: top.mistmc.angelblock.Angelblock
 api-version: 1.21
 description: 天使方块插件，允许在空中放置特殊方块
 author: mc506lw
+softdepend:
+  - HuskClaims
 
 commands:
   angelblock:

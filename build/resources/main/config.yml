@@ -1,57 +1,83 @@
-#   ___                       _ ______  _               _
-#  / _ \                     | || ___ \| |             | |
-# / /_\ \ _ __    __ _   ___ | || |_/ /| |  ___    ___ | | __
-# |  _  || '_ \  / _` | / _ \| || ___ \| | / _ \  / __|| |/ /
-# | | | || | | || (_| ||  __/| || |_/ /| || (_) || (__ |   <
-# \_| |_/|_| |_| \__, | \___||_|\____/ |_| \___/  \___||_|\_\
-#                 __/ |
-#                |___/
-# By: MC506LW
-# QQ交流群: 645921477
+# =============================================
+#            天使方块插件配置文件
+#           ___                       _ ______  _               _
+#          / _ \                     | || ___ \| |             | |
+#         / /_\ \ _ __    __ _   ___ | || |_/ /| |  ___    ___ | | __
+#         |  _  || '_ \  / _` | / _ \| || ___ \| | / _ \  / __|| |/ /
+#         | | | || | | || (_| ||  __/| || |_/ /| || (_) || (__ |   <
+#         \_| |_/|_| |_| \__, | \___||_|\____/ |_| \___/  \___||_|\_\
+#                         __/ |
+#                        |___/
+#         Author: MC506LW
+#         QQ Group: 645921477
+#         Version: 1.1
+# =============================================
 
-# 物品配置
+# 物品设置 - 定义天使方块的物品属性
 item:
+  # 物品材质 (Material) - 定义物品在游戏中的外观
   material: OBSIDIAN
+
+  # 物品名称 (支持颜色代码)
   name: "&b天使方块"
+
+  # 物品描述 (支持颜色代码)
   lore:
     - "&7可以放置在任何位置"
     - "&eShift + 滚轮调整距离"
     - "&e右击放置，左击拆除"
 
-# 粒子配置
-particle:
-  color: 255,255,255  # RGB白色
-  size: 0.5 # 1方块大小
 
-# 距离配置
+# 粒子效果设置 - 定义放置时的视觉特效
+particle:
+  # 粒子颜色 (RGB格式: 红,绿,蓝)
+  color: 255,255,255  # 白色
+
+  # 粒子大小 (单位: 方块大小)
+  size: 0.5
+
+
+# 放置距离设置 - 控制方块放置的间距
 distance:
-  min: 1
+  # 最小放置距离 (单位: 方块)
+  min: 2
+
+  # 最大放置距离 (单位: 方块)
   max: 6
+
+  # 默认放置距离 (单位: 方块)
   default: 3
 
-# 数据库配置
-database:
-  filename: angelblocks.db
 
-# 消息配置
+# 消息提示配置 - 所有插件提示信息
 messages:
+  # ---------- 通用提示 ----------
   no-permission: "&c你没有权限使用此命令！"
-  player-not-found: "&c玩家未找到！"
-  give-success: "&a已给予天使方块给 {player}！"
-  reload-success: "&a配置已重载！"
-  placement-distance: "&e放置距离: {distance}"
-  cant-build-here: "&c你不能在这里建造！"
-  cant-place-here: "&c不能放置在这里！"
-  usage: "&c用法: /angelblock [player] 或 /angelblock reload"
-  max-blocks-reached: "&c你已达到最大放置数量 ({max})！"
-  removeall-confirm: "&c确定要移除所有天使方块吗？再次输入/angelblock removeall confirm以确认"
   player-only-command: "&c只有玩家才能执行此命令！"
-  removeall-success: "&a已移除所有天使方块，并返还了 {count} 个方块！"
-  cant-break-here: "&c你不能在这里破坏天使方块！"
-  cant-build-in-protected-area: "&c你不能在保护区域放置天使方块！"
-  block-removed-by-protection: "&c由于领地保护，你放置的天使方块被移除，已返还给你一个天使方块"
-  block-location: "&7方块位置: {location}"
-  cant-break-others: "&c你不能破坏 {owner} 的天使方块！"
-  admin-removed-your-block: "&c管理员 {admin} 移除了你的天使方块"
+  player-not-found: "&c玩家未找到！"
+  reload-success: "&a配置已重载！"
+
+  # ---------- 放置相关 ----------
+  cant-place-here: "&c不能放置在这里！"
+  cant-build-here: "&c你不能在这里建造！"
+  cant-place-in-claim: "&c你不能在此领地放置天使方块！"
+  max-blocks-reached: "&c你已达到最大放置数量 ({max})！"
+  placement-distance: "&e放置距离: {distance}"
+
+  # ---------- 拆除相关 ----------
   block-removed: "&a天使方块已移除"
+  cant-break-in-claim: "&c你不能在此领地破坏天使方块！"
+  cant-break-others: "&c你不能破坏 {owner} 的天使方块！"
   corrupted-block: "&c这个天使方块信息已损坏，无法破坏！"
+
+  # ---------- 保护系统提示 ----------
+  block-removed-by-protection: "&c由于领地保护，你放置的天使方块被移除，已返还给你一个天使方块"
+
+  # ---------- 管理员操作 ----------
+  removeall-confirm: "&c确定要移除所有天使方块吗？再次输入/angelblock removeall confirm以确认"
+  removeall-success: "&a已移除所有天使方块，并返还了 {count} 个方块！"
+  removeall-error: "&4移除所有天使方块失败！"
+  admin-removed-your-block: "&c管理员 {admin} 移除了你的天使方块"
+
+  # ---------- 物品给予提示 ----------
+  give-success: "&a已给予天使方块给 {player}！"

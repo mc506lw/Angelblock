@@ -1,11 +1,18 @@
 package top.mistmc.angelblock;
 
+import net.william278.huskclaims.api.HuskClaimsAPI;
+import net.william278.huskclaims.libraries.cloplib.operation.OperationType;
+import net.william278.huskclaims.libraries.cloplib.operation.OperationTypeRegistry;
+import net.william278.huskclaims.position.Position;
+import net.william278.huskclaims.user.OnlineUser;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,6 +20,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
@@ -21,12 +29,12 @@ import org.bukkit.FluidCollisionMode;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
-import java.sql.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
 
-    private Connection connection;
     private final Map<UUID, Integer> playerDistances = new HashMap<>();
     private final Map<UUID, Location> lastPreviewLocations = new HashMap<>();
     private final Map<UUID, Long> removeallConfirmations = new HashMap<>();
@@ -34,16 +42,29 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
     private FileConfiguration config;
     private final Map<UUID, Integer> playerMaxBlocksCache = new HashMap<>();
     private final Map<UUID, List<Location>> recentPlacements = new HashMap<>();
+    private File blocksFile;
+    private FileConfiguration blocksConfig;
+    private HuskClaimsAPI huskClaims;
+    private OperationType releaseMonOpType;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         reloadPluginConfig();
-        setupDatabase();
+        loadBlocksFile(); // 确保在启用时加载blocks.yml
         getServer().getPluginManager().registerEvents(this, this);
 
         // 启动粒子预览任务
         new ParticlePreviewTask().runTaskTimer(this, 0, 5);
+
+        // 初始化 HuskClaims
+        Plugin huskPlugin = Bukkit.getServer().getPluginManager().getPlugin("HuskClaims");
+        if (huskPlugin != null && huskPlugin.isEnabled()) {
+            huskClaims = HuskClaimsAPI.getInstance();
+            getLogger().info("HuskClaims 已加载，领地保护已启用");
+        } else {
+            getLogger().warning("HuskClaims 未找到，领地保护已禁用");
+        }
     }
 
     private void reloadPluginConfig() {
@@ -62,33 +83,45 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
         dustOptions = new Particle.DustOptions(Color.fromRGB(r, g, b), size);
     }
 
-    private void setupDatabase() {
-        try {
-            String filename = config.getString("database.filename", "angelblocks.db");
-            connection = DriverManager.getConnection("jdbc:sqlite:" + getDataFolder() + "/" + filename);
+    private void loadBlocksFile() {
+        blocksFile = new File(getDataFolder(), "blocks.yml");
 
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute("CREATE TABLE IF NOT EXISTS angel_blocks (" +
-                        "world TEXT NOT NULL," +
-                        "x INTEGER NOT NULL," +
-                        "y INTEGER NOT NULL," +
-                        "z INTEGER NOT NULL," +
-                        "player_uuid TEXT NOT NULL," +
-                        "PRIMARY KEY (world, x, y, z))");
-            }
-
-            // 迁移旧数据（如果没有player_uuid列）
-            try (ResultSet rs = connection.getMetaData().getColumns(null, null, "angel_blocks", "player_uuid")) {
-                if (!rs.next()) {
-                    try (Statement stmt = connection.createStatement()) {
-                        stmt.execute("ALTER TABLE angel_blocks ADD COLUMN player_uuid TEXT NOT NULL DEFAULT 'legacy'");
-                        getLogger().info("数据库升级完成：添加了player_uuid列");
-                    }
+        // 确保文件存在
+        if (!blocksFile.exists()) {
+            try {
+                // 创建插件数据文件夹（如果不存在）
+                if (!blocksFile.getParentFile().exists()) {
+                    blocksFile.getParentFile().mkdirs();
                 }
+
+                // 创建空文件
+                blocksFile.createNewFile();
+                getLogger().info("已创建 blocks.yml 文件");
+
+                // 如果需要初始内容，可以在这里添加
+                blocksConfig = YamlConfiguration.loadConfiguration(blocksFile);
+                blocksConfig.createSection("blocks"); // 创建空的方块存储区
+                saveBlocksFile(); // 保存初始文件
+            } catch (IOException e) {
+                getLogger().severe("创建 blocks.yml 文件失败: " + e.getMessage());
             }
-        } catch (SQLException e) {
-            getLogger().severe("数据库连接失败: " + e.getMessage());
-            getServer().getPluginManager().disablePlugin(this);
+        } else {
+            // 如果文件已存在，正常加载
+            blocksConfig = YamlConfiguration.loadConfiguration(blocksFile);
+        }
+    }
+
+    private void saveBlocksFile() {
+        // 关键修复：添加null检查
+        if (blocksConfig == null) {
+            getLogger().warning("无法保存blocks.yml：配置未初始化");
+            return;
+        }
+
+        try {
+            blocksConfig.save(blocksFile);
+        } catch (IOException e) {
+            getLogger().severe("保存 blocks.yml 失败: " + e.getMessage());
         }
     }
 
@@ -101,10 +134,10 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
                     return true;
                 }
                 reloadPluginConfig();
+                loadBlocksFile(); // 重新加载blocks.yml
                 sendMessage(sender, "messages.reload-success");
                 return true;
-            }
-            else if (args[0].equalsIgnoreCase("removeall")) {
+            } else if (args[0].equalsIgnoreCase("removeall")) {
                 if (!sender.hasPermission("angelblock.removeall")) {
                     sendMessage(sender, "messages.no-permission");
                     return true;
@@ -156,6 +189,43 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
         return true;
     }
 
+    // 添加领地权限检查方法
+    private boolean canPlaceAt(Player player, Location location) {
+        if (huskClaims == null) return true;
+
+        if (player.hasPermission("huskclaims.bypass")) {
+            return true;
+        }
+
+        Position position = huskClaims.getPosition(
+                location.getX(),
+                location.getY(),
+                location.getZ(),
+                huskClaims.getWorld(location.getWorld().getName())
+        );
+        OnlineUser user = huskClaims.getOnlineUser(player.getUniqueId());
+        return huskClaims.isOperationAllowed(user, OperationType.BLOCK_PLACE, position);
+    }
+
+    private boolean canBreakAt(Player player, Location location) {
+        if (huskClaims == null) return true;
+
+        // 管理员权限覆盖
+        if (player.hasPermission("huskclaims.bypass")) {
+            return true;
+        }
+
+        Position position = huskClaims.getPosition(
+                location.getX(),
+                location.getY(),
+                location.getZ(),
+                huskClaims.getWorld(location.getWorld().getName())
+        );
+        OnlineUser user = huskClaims.getOnlineUser(player.getUniqueId());
+        return huskClaims.isOperationAllowed(user, OperationType.BLOCK_BREAK, position);
+    }
+
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
@@ -179,8 +249,7 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
                     completions.add(player.getName());
                 }
             }
-        }
-        else if (args.length == 2 && args[0].equalsIgnoreCase("removeall")) {
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("removeall")) {
             if ("confirm".startsWith(args[1].toLowerCase()) && sender.hasPermission("angelblock.removeall")) {
                 completions.add("confirm");
             }
@@ -247,15 +316,14 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
             }
 
             placeAngelBlock(player, targetBlock);
-
-            if (player.getGameMode() != GameMode.CREATIVE) {
-                ItemStack item = player.getInventory().getItemInMainHand();
-                item.setAmount(item.getAmount() - 1);
-            }
         }
     }
 
     private void placeAngelBlock(Player player, Block block) {
+        if (!canPlaceAt(player, block.getLocation())) {
+            sendMessage(player, "messages.cant-place-in-claim");
+            return;
+        }
         // 检查玩家是否超过上限
         UUID playerId = player.getUniqueId();
         int maxBlocks = getMaxBlocks(player);
@@ -271,7 +339,7 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
                 config.getString("item.material", "STONE"));
         block.setType(Objects.requireNonNullElse(material, Material.STONE));
 
-        // 保存到数据库（记录玩家UUID）
+        // 保存到YAML文件（记录玩家UUID）
         saveBlockLocation(block.getLocation(), player.getUniqueId());
 
         // 记录放置操作用于后续验证
@@ -317,7 +385,7 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
             // 方块被领地保护移除了
             removeRecentPlacement(playerId, location);
 
-            // 移除数据库记录
+            // 移除YAML记录
             removeBlockLocation(location);
 
             // 补偿玩家一个天使方块
@@ -346,6 +414,10 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
     }
 
     private void removeAngelBlock(Block block, Player player) {
+        if (!canBreakAt(player, block.getLocation())) {
+            sendMessage(player, "messages.cant-break-in-claim");
+            return;
+        }
         // 移除最近放置记录
         removeRecentPlacement(player.getUniqueId(), block.getLocation());
 
@@ -402,21 +474,24 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
     }
 
     private UUID getBlockOwner(Block block) {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT player_uuid FROM angel_blocks " +
-                        "WHERE world = ? AND x = ? AND y = ? AND z = ?")) {
+        ConfigurationSection blocksSection = blocksConfig.getConfigurationSection("blocks");
+        if (blocksSection != null) {
+            for (String key : blocksSection.getKeys(false)) {
+                ConfigurationSection blockSection = blocksSection.getConfigurationSection(key);
+                if (blockSection != null) {
+                    String world = blockSection.getString("world");
+                    int x = blockSection.getInt("x");
+                    int y = blockSection.getInt("y");
+                    int z = blockSection.getInt("z");
 
-            stmt.setString(1, block.getWorld().getName());
-            stmt.setInt(2, block.getX());
-            stmt.setInt(3, block.getY());
-            stmt.setInt(4, block.getZ());
-
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return UUID.fromString(rs.getString("player_uuid"));
+                    if (block.getWorld().getName().equals(world) &&
+                            block.getX() == x &&
+                            block.getY() == y &&
+                            block.getZ() == z) {
+                        return UUID.fromString(blockSection.getString("player"));
+                    }
+                }
             }
-        } catch (SQLException | IllegalArgumentException e) {
-            getLogger().warning("获取方块拥有者失败: " + e.getMessage());
         }
         return null;
     }
@@ -431,39 +506,32 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
         boolean isAdmin = player.hasPermission("angelblock.admin");
         UUID playerId = player.getUniqueId();
 
-        // 获取要移除的方块位置
-        List<Location> blockLocations = new ArrayList<>();
-        int blockCount = 0;
-
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT world, x, y, z, player_uuid FROM angel_blocks " +
-                        (isAdmin ? "" : "WHERE player_uuid = ?"))) {
-
-            if (!isAdmin) {
-                stmt.setString(1, playerId.toString());
-            }
-
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                String worldName = rs.getString("world");
-                int x = rs.getInt("x");
-                int y = rs.getInt("y");
-                int z = rs.getInt("z");
-                UUID ownerUUID = UUID.fromString(rs.getString("player_uuid"));
-
-                World world = Bukkit.getWorld(worldName);
-                if (world != null) {
-                    blockLocations.add(new Location(world, x, y, z));
-                    blockCount++;
-                }
-            }
-
-            rs.close();
-        } catch (SQLException e) {
-            getLogger().warning("获取方块位置失败: " + e.getMessage());
+        ConfigurationSection blocksSection = blocksConfig.getConfigurationSection("blocks");
+        if (blocksSection == null) {
             sendMessage(player, "messages.removeall-error");
             return;
+        }
+
+        List<Location> blockLocations = new ArrayList<>();
+        Map<String, ConfigurationSection> toRemove = new HashMap<>();
+
+        for (String key : blocksSection.getKeys(false)) {
+            ConfigurationSection blockSection = blocksSection.getConfigurationSection(key);
+            if (blockSection != null) {
+                String world = blockSection.getString("world");
+                int x = blockSection.getInt("x");
+                int y = blockSection.getInt("y");
+                int z = blockSection.getInt("z");
+                UUID ownerUUID = UUID.fromString(blockSection.getString("player"));
+
+                if (isAdmin || playerId.equals(ownerUUID)) {
+                    World worldObj = Bukkit.getWorld(world);
+                    if (worldObj != null) {
+                        blockLocations.add(new Location(worldObj, x, y, z));
+                        toRemove.put(key, blockSection);
+                    }
+                }
+            }
         }
 
         // 从世界中移除方块
@@ -482,62 +550,56 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
             }
         }
 
-        // 从数据库中移除记录
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "DELETE FROM angel_blocks " +
-                        (isAdmin ? "" : "WHERE player_uuid = ?"))) {
-
-            if (!isAdmin) {
-                stmt.setString(1, playerId.toString());
-            }
-
-            int dbRemoved = stmt.executeUpdate();
-
-            // 给予玩家所有移除的方块（非创造模式）
-            if (player.getGameMode() != GameMode.CREATIVE && removedCount > 0) {
-                ItemStack angelBlock = createAngelBlock();
-
-                // 分批给予（避免一次给太多）
-                int remaining = removedCount;
-                while (remaining > 0) {
-                    int amount = Math.min(remaining, angelBlock.getMaxStackSize());
-                    ItemStack toGive = angelBlock.clone();
-                    toGive.setAmount(amount);
-
-                    HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(toGive);
-
-                    // 背包满时掉落
-                    for (ItemStack item : leftover.values()) {
-                        player.getWorld().dropItem(player.getLocation(), item);
-                    }
-
-                    remaining -= amount;
-                }
-            }
-
-            sendMessage(player, "messages.removeall-success", "count", String.valueOf(dbRemoved));
-            getLogger().info(player.getName() + " 移除了 " + dbRemoved + " 个天使方块");
-
-        } catch (SQLException e) {
-            getLogger().warning("移除所有天使方块失败: " + e.getMessage());
-            sendMessage(player, "messages.removeall-error");
+        // 从YAML文件中移除记录
+        for (String key : toRemove.keySet()) {
+            blocksSection.set(key, null);
         }
+
+        saveBlocksFile();
+
+        // 给予玩家所有移除的方块（非创造模式）
+        if (player.getGameMode() != GameMode.CREATIVE && removedCount > 0) {
+            ItemStack angelBlock = createAngelBlock();
+
+            // 分批给予（避免一次给太多）
+            int remaining = removedCount;
+            while (remaining > 0) {
+                int amount = Math.min(remaining, angelBlock.getMaxStackSize());
+                ItemStack toGive = angelBlock.clone();
+                toGive.setAmount(amount);
+
+                HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(toGive);
+
+                // 背包满时掉落
+                for (ItemStack item : leftover.values()) {
+                    player.getWorld().dropItem(player.getLocation(), item);
+                }
+
+                remaining -= amount;
+            }
+        }
+
+        sendMessage(player, "messages.removeall-success", "count", String.valueOf(removedCount));
+        getLogger().info(player.getName() + " 移除了 " + removedCount + " 个天使方块");
     }
 
     private int getPlayerBlockCount(UUID playerId) {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT COUNT(*) AS count FROM angel_blocks WHERE player_uuid = ?")) {
+        ConfigurationSection blocksSection = blocksConfig.getConfigurationSection("blocks");
+        if (blocksSection == null) {
+            return 0;
+        }
 
-            stmt.setString(1, playerId.toString());
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("count");
+        int count = 0;
+        for (String key : blocksSection.getKeys(false)) {
+            ConfigurationSection blockSection = blocksSection.getConfigurationSection(key);
+            if (blockSection != null) {
+                UUID ownerUUID = UUID.fromString(blockSection.getString("player"));
+                if (playerId.equals(ownerUUID)) {
+                    count++;
                 }
             }
-        } catch (SQLException e) {
-            getLogger().warning("获取玩家方块数量失败: " + e.getMessage());
         }
-        return 0;
+        return count;
     }
 
     private int getMaxBlocks(Player player) {
@@ -580,7 +642,9 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
     @EventHandler
     public void onPlayerSwapHandItems(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
-        if (!player.isSneaking()) return;
+        if (!player.isSneaking() || !isAngelBlock(player.getInventory().getItemInMainHand())) {
+            return;
+        }
 
         event.setCancelled(true);
 
@@ -591,7 +655,9 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
     @EventHandler
     public void onItemHeldChange(PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
-        if (!player.isSneaking()) return;
+        if (!player.isSneaking() || !isAngelBlock(player.getInventory().getItemInMainHand())) {
+            return;
+        }
 
         int previousSlot = event.getPreviousSlot();
         int newSlot = event.getNewSlot();
@@ -663,50 +729,69 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
     }
 
     private boolean isAngelBlock(Block block) {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT 1 FROM angel_blocks WHERE world = ? AND x = ? AND y = ? AND z = ?")) {
+        ConfigurationSection blocksSection = blocksConfig.getConfigurationSection("blocks");
+        if (blocksSection != null) {
+            for (String key : blocksSection.getKeys(false)) {
+                ConfigurationSection blockSection = blocksSection.getConfigurationSection(key);
+                if (blockSection != null) {
+                    String world = blockSection.getString("world");
+                    int x = blockSection.getInt("x");
+                    int y = blockSection.getInt("y");
+                    int z = blockSection.getInt("z");
 
-            stmt.setString(1, block.getWorld().getName());
-            stmt.setInt(2, block.getX());
-            stmt.setInt(3, block.getY());
-            stmt.setInt(4, block.getZ());
-
-            return stmt.executeQuery().next();
-        } catch (SQLException e) {
-            getLogger().warning("数据库错误: " + e.getMessage());
-            return false;
+                    if (block.getWorld().getName().equals(world) &&
+                            block.getX() == x &&
+                            block.getY() == y &&
+                            block.getZ() == z) {
+                        return true;
+                    }
+                }
+            }
         }
+        return false;
     }
 
     private void saveBlockLocation(Location loc, UUID playerId) {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "INSERT OR REPLACE INTO angel_blocks (world, x, y, z, player_uuid) VALUES (?, ?, ?, ?, ?)")) {
-
-            stmt.setString(1, loc.getWorld().getName());
-            stmt.setInt(2, loc.getBlockX());
-            stmt.setInt(3, loc.getBlockY());
-            stmt.setInt(4, loc.getBlockZ());
-            stmt.setString(5, playerId.toString());
-            stmt.executeUpdate();
-
-        } catch (SQLException e) {
-            getLogger().warning("保存方块位置失败: " + e.getMessage());
+        // 确保blocks部分存在
+        ConfigurationSection blocksSection = blocksConfig.getConfigurationSection("blocks");
+        if (blocksSection == null) {
+            blocksSection = blocksConfig.createSection("blocks");
         }
+
+        String key = UUID.randomUUID().toString();
+        ConfigurationSection blockSection = blocksSection.createSection(key);
+
+        blockSection.set("world", loc.getWorld().getName());
+        blockSection.set("x", loc.getBlockX());
+        blockSection.set("y", loc.getBlockY());
+        blockSection.set("z", loc.getBlockZ());
+        blockSection.set("player", playerId.toString());
+
+        saveBlocksFile();
     }
 
     private void removeBlockLocation(Location loc) {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "DELETE FROM angel_blocks WHERE world = ? AND x = ? AND y = ? AND z = ?")) {
+        ConfigurationSection blocksSection = blocksConfig.getConfigurationSection("blocks");
+        if (blocksSection != null) {
+            for (String key : blocksSection.getKeys(false)) {
+                ConfigurationSection blockSection = blocksSection.getConfigurationSection(key);
+                if (blockSection != null) {
+                    String world = blockSection.getString("world");
+                    int x = blockSection.getInt("x");
+                    int y = blockSection.getInt("y");
+                    int z = blockSection.getInt("z");
 
-            stmt.setString(1, loc.getWorld().getName());
-            stmt.setInt(2, loc.getBlockX());
-            stmt.setInt(3, loc.getBlockY());
-            stmt.setInt(4, loc.getBlockZ());
-            stmt.executeUpdate();
-
-        } catch (SQLException e) {
-            getLogger().warning("移除方块位置失败: " + e.getMessage());
+                    if (loc.getWorld().getName().equals(world) &&
+                            loc.getBlockX() == x &&
+                            loc.getBlockY() == y &&
+                            loc.getBlockZ() == z) {
+                        blocksSection.set(key, null);
+                        break;
+                    }
+                }
+            }
         }
+        saveBlocksFile();
     }
 
     private class ParticlePreviewTask extends BukkitRunnable {
@@ -791,12 +876,7 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
 
     @Override
     public void onDisable() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-            }
-        } catch (SQLException e) {
-            getLogger().warning("关闭数据库连接失败: " + e.getMessage());
-        }
+        // 确保在关闭前保存数据
+        saveBlocksFile();
     }
 }
