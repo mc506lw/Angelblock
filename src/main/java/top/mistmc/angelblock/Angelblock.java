@@ -723,9 +723,20 @@ public class Angelblock extends JavaPlugin implements Listener, TabExecutor {
         if (item == null || !item.hasItemMeta()) return false;
 
         String configName = colorize(config.getString("item.name", "&b天使方块"));
-        ItemMeta meta = item.getItemMeta();
 
-        return meta != null && meta.hasDisplayName() && meta.getDisplayName().equals(configName);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return false;
+
+        if (!meta.hasLore()) return false; // need to delete
+
+        System.out.println(Arrays.toString(meta.getLore().toArray()));
+        for (String lore : config.getStringList("item.lore")) {
+            if (!meta.hasLore() || !meta.getLore().contains(colorize(lore))) {
+                return false;
+            }
+        }
+
+        return meta.hasDisplayName() && meta.getDisplayName().equals(configName);
     }
 
     private boolean isAngelBlock(Block block) {
