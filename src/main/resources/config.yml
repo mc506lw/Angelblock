@@ -5,12 +5,12 @@
 #         / /_\ \ _ __    __ _   ___ | || |_/ /| |  ___    ___ | | __
 #         |  _  || '_ \  / _` | / _ \| || ___ \| | / _ \  / __|| |/ /
 #         | | | || | | || (_| ||  __/| || |_/ /| || (_) || (__ |   <
-#         \_| |_/|_| |_| \__, | \___||_|\____/ |_| \___/  \___||_|\_\
+#         \_| |_/|_| |_|\__, | \___||_|\____/ |_| \___/  \___||_|\_\
 #                         __/ |
 #                        |___/
 #         Author: MC506LW
-#         QQ Group: 645921477
-#         Version: 1.1
+#         QQ Group: 810329264
+#         Version: 1.2
 # =============================================
 
 # 物品设置 - 定义天使方块的物品属性
@@ -18,10 +18,10 @@ item:
   # 物品材质 (Material) - 定义物品在游戏中的外观
   material: OBSIDIAN
 
-  # 物品名称 (支持颜色代码)
-  name: "&b天使方块"
+  # 物品名称 (支持颜色代码和 HEX 颜色)
+  name: "<gradient:#cba6f7-#89b4fa>天使方块</gradient>"
 
-  # 物品描述 (支持颜色代码)
+  # 物品描述 (支持颜色代码和 HEX 颜色)
   lore:
     - "&7可以放置在任何位置"
     - "&eShift + 滚轮调整距离"
@@ -30,8 +30,8 @@ item:
 
 # 粒子效果设置 - 定义放置时的视觉特效
 particle:
-  # 粒子颜色 (RGB格式: 红,绿,蓝)
-  color: 255,255,255  # 白色
+  # 粒子颜色 (HEX 格式)
+  color: "#f5e0dc"
 
   # 粒子大小 (单位: 方块大小)
   size: 0.5
@@ -52,32 +52,36 @@ distance:
 # 消息提示配置 - 所有插件提示信息
 messages:
   # ---------- 通用提示 ----------
-  no-permission: "&c你没有权限使用此命令！"
-  player-only-command: "&c只有玩家才能执行此命令！"
-  player-not-found: "&c玩家未找到！"
-  reload-success: "&a配置已重载！"
+  no-permission: "<gradient:#f38ba8-#f5c2e7>[天使方块] 你没有权限使用此命令！</gradient>"
+  player-only-command: "<gradient:#f38ba8-#f5c2e7>[天使方块] 只有玩家才能执行此命令！</gradient>"
+  player-not-found: "<gradient:#f38ba8-#f5c2e7>[天使方块] 玩家未找到！</gradient>"
+  reload-success: "<gradient:#a6e3a1-#94e2d5>[天使方块] 配置已重载！</gradient>"
 
   # ---------- 放置相关 ----------
-  cant-place-here: "&c不能放置在这里！"
-  cant-build-here: "&c你不能在这里建造！"
-  cant-place-in-claim: "&c你不能在此领地放置天使方块！"
-  max-blocks-reached: "&c你已达到最大放置数量 ({max})！"
-  placement-distance: "&e放置距离: {distance}"
+  cant-place-here: "<gradient:#f38ba8-#f5c2e7>[天使方块] 不能放置在这里！</gradient>"
+  cant-build-here: "<gradient:#f38ba8-#f5c2e7>[天使方块] 你不能在这里建造！</gradient>"
+  cant-place-in-claim: "<gradient:#f38ba8-#f5c2e7>[天使方块] 你不能在此领地放置天使方块！</gradient>"
+  max-blocks-reached: "<gradient:#f38ba8-#f5c2e7>[天使方块] 你已达到最大放置数量 ({max})！</gradient>"
+
+  # ---------- 放置距离提示 !!不支持HEX颜色!! ----------
+  placement-distance: "&e[天使方块] 放置距离: &a{distance}"
 
   # ---------- 拆除相关 ----------
-  block-removed: "&a天使方块已移除"
-  cant-break-in-claim: "&c你不能在此领地破坏天使方块！"
-  cant-break-others: "&c你不能破坏 {owner} 的天使方块！"
-  corrupted-block: "&c这个天使方块信息已损坏，无法破坏！"
+  block-removed: "<gradient:#a6e3a1-#94e2d5>[天使方块] 天使方块已移除</gradient>"
+  cant-break-in-claim: "<gradient:#f38ba8-#f5c2e7>[天使方块] 你不能在此领地破坏天使方块！</gradient>"
+  cant-break-others: "<gradient:#f38ba8-#f5c2e7>[天使方块] 你不能破坏 {owner} 的天使方块！</gradient>"
+  corrupted-block: "<gradient:#f38ba8-#f5c2e7>[天使方块] 这个天使方块信息已损坏，无法破坏！</gradient>"
 
   # ---------- 保护系统提示 ----------
-  block-removed-by-protection: "&c由于领地保护，你放置的天使方块被移除，已返还给你一个天使方块"
+  block-removed-by-protection: "<gradient:#f38ba8-#f5c2e7>[天使方块] 由于领地保护，你放置的天使方块被移除，已返还给你一个天使方块</gradient>"
 
   # ---------- 管理员操作 ----------
-  removeall-confirm: "&c确定要移除所有天使方块吗？再次输入/angelblock removeall confirm以确认"
-  removeall-success: "&a已移除所有天使方块，并返还了 {count} 个方块！"
-  removeall-error: "&4移除所有天使方块失败！"
-  admin-removed-your-block: "&c管理员 {admin} 移除了你的天使方块"
+  removeall-confirm: "&c[天使方块] 确定要移除你的所有天使方块吗？再次输入/angelblock removeall confirm以确认"
+  removeall-confirm-target: "&c[天使方块] 确定要移除 &e{target} &c的所有天使方块吗？再次输入/angelblock removeall confirm以确认"
+  removeall-success: "&a[天使方块] 已移除 &e{count} &a个天使方块！"
+  removeall-success-single: "&a[天使方块] 已移除 &e{target} &c的 &e{count} &a个天使方块！"
+  removeall-error: "&c[天使方块] 移除天使方块失败！"
+  admin-removed-your-block: "&c[天使方块] 管理员 &e{admin} &c移除了你的天使方块"
 
   # ---------- 物品给予提示 ----------
-  give-success: "&a已给予天使方块给 {player}！"
+  give-success: "<gradient:#a6e3a1-#94e2d5>[天使方块] 已给予天使方块给 {player}！</gradient>"

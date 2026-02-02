@@ -1,11 +1,13 @@
 name: AngelBlock
-version: 1.1
+version: 1.2
 main: top.mistmc.angelblock.Angelblock
 api-version: 1.21
 description: 天使方块插件，允许在空中放置特殊方块
 author: mc506lw
+folia-supported: true
 softdepend:
   - HuskClaims
+  - Dominion
 
 commands:
   angelblock:
@@ -14,9 +16,12 @@ commands:
       /angelblock - 给自己天使方块
       /angelblock <玩家> - 给指定玩家天使方块
       /angelblock reload - 重载配置文件
-      /angelblock removeall - 移除所有天使方块
+      /angelblock removeall - 移除自己的天使方块
+      /angelblock removeall <玩家> - 移除指定玩家的天使方块（需要权限）
+      /angelblock removeall @a - 移除所有玩家的天使方块（需要权限）
+      /angelblock removeall @r - 移除随机玩家的天使方块（需要权限）
     aliases: [ab]
-    permission: angelblock.admin
+    permission: angelblock.use
     permission-message: "&c你没有权限使用此命令！"
 
 permissions:
@@ -34,7 +39,13 @@ permissions:
     default: op
   angelblock.removeall:
     description: 允许移除所有天使方块
+    default: true
+  angelblock.removeall.others:
+    description: 允许移除其他玩家的天使方块
     default: op
   angelblock.max.*:
+    description: 允许无限放置天使方块
+    default: op
+  angelblock.max.unlimited:
     description: 允许无限放置天使方块
     default: op
