@@ -52,7 +52,8 @@ public class EventListener implements Listener {
 
         if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
             Block clickedBlock = event.getClickedBlock();
-            if (clickedBlock != null && Utils.isAngelBlock(clickedBlock, configManager.getItemMaterial())) {
+            if (clickedBlock != null
+                    && Utils.isAngelBlock(clickedBlock, configManager.getItemMaterial(), dataManager)) {
                 event.setCancelled(true);
                 removeAngelBlock(clickedBlock, player);
                 return;
@@ -179,7 +180,7 @@ public class EventListener implements Listener {
         }
 
         Block block = location.getBlock();
-        if (!Utils.isAngelBlock(block, configManager.getItemMaterial())) {
+        if (!Utils.isAngelBlock(block, configManager.getItemMaterial(), dataManager)) {
             removeRecentPlacement(playerId, location);
             dataManager.removeBlockLocation(location);
 

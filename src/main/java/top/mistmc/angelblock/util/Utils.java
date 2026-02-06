@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import top.mistmc.angelblock.data.BlockDataManager;
 
 public class Utils {
 
@@ -28,9 +29,13 @@ public class Utils {
         }
     }
 
-    public static boolean isAngelBlock(Block block, String materialName) {
+    public static boolean isAngelBlock(Block block, String materialName, BlockDataManager dataManager) {
         Material material = Material.matchMaterial(materialName);
-        return material != null && block.getType() == material;
+        if (material == null || block.getType() != material) {
+            return false;
+        }
+        // 检查数据库中是否存在该方块的记录
+        return dataManager.getBlockOwner(block.getLocation()) != null;
     }
 
     public static boolean isAngelBlock(ItemStack item, String itemName) {

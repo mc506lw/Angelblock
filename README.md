@@ -5,7 +5,7 @@
 一个强大的 Minecraft 服务器插件，允许玩家在空中放置特殊方块，支持自定义距离调整、领地保护和粒子特效。
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.2-green.svg)](https://github.com/mc506lw/AngelBlock)
+[![Version](https://img.shields.io/badge/Version-1.2.1-green.svg)](https://github.com/mc506lw/AngelBlock)
 [![API](https://img.shields.io/badge/API-1.21-orange.svg)](https://www.spigotmc.org/)
 [![Java](https://img.shields.io/badge/Java-17-red.svg)](https://openjdk.org/projects/jdk/17/)
 
@@ -144,6 +144,11 @@ distance:
 欢迎提交 Issue 和 Pull Request！
 
 ## 更新日志
+
+### v1.2.1
+- 修复自然黑耀石被误判为天使方块的问题
+- 现在只有数据库中记录的天使方块才能被插件识别和交互
+- 自然的黑耀石可以正常破坏，不再显示"方块已损坏"错误提示
 
 ### v1.2
 - 添加 Folia 支持
